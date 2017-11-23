@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -9,6 +10,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include "shell.h"
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #define INPUT_BUFFER_SIZE 2048
 #define NB_MAX_TOKENS 512
@@ -83,6 +86,16 @@ void exec_cmd(char* data) {
 				close(com[0]);
 			}
 			last_token = new_token;
+		}
+		char *in, *out; //Fichiers de redirection entre/sortis
+
+		in = trouve_redirection(last_token, "<");
+		if (in != NULL) {
+			freopen(in, "r", stdin);
+		}
+		out = trouve_redirection(last_token, ">");
+		if (out != NULL) {
+			freopen(out, "w", stdout);
 		}
 
 		if (execvp(last_token[0], last_token) < 0) {
