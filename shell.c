@@ -57,7 +57,7 @@ void exec_cmd(char* data) {
 	if (strcmp(tokens[0], "exit") == 0) {
 		fprintf(stdout, ANSI_COLOR_RED "Goodbye...\n" ANSI_COLOR_RESET);
 		exit(0);
-	} else if (strcmp(tokens[0], "fg") == 0)
+	} else if (strcmp(tokens[0], "fg") == 0 && gpid != 0)
 		kill(gpid, SIGCONT);
 
 	if ((pid = fork()) == 0) {
@@ -77,6 +77,7 @@ void exec_cmd(char* data) {
 				dup2(com[1], 1);
 				execvp(last_token[0], last_token);
 				close(com[1]);
+				gpid = 0;
 				exit(0);
 			} else {
 				//Father
@@ -103,8 +104,9 @@ void exec_cmd(char* data) {
 			exit(-1);
 		}
 	} else {
-		gpid = pid;
 		waitpid(pid, &return_status, WUNTRACED | WCONTINUED);
+		if(WIFSTOPPED(return_status))
+			gpid = pid;
 	}
 }
 
