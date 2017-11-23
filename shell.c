@@ -32,7 +32,6 @@ void exec_cmd(char* data){
     
     int return_status;
     int pid;
-    if((pid=fork())==0){
 	int nb_tokens;
 	char* tokens[NB_MAX_TOKENS+1];
     nb_tokens=split_tokens(tokens, data, NB_MAX_TOKENS);
@@ -55,6 +54,7 @@ void exec_cmd(char* data){
             exit(0);
         }
 		
+    if((pid=fork())==0){
     last_token=tokens;
     for(;;){
         new_token=trouve_tube(last_token,"|");
