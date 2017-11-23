@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
@@ -58,7 +57,8 @@ void exec_cmd(char* data) {
 	if (strcmp(tokens[0], "exit") == 0) {
 		fprintf(stdout, ANSI_COLOR_RED "Goodbye...\n" ANSI_COLOR_RESET);
 		exit(0);
-	}
+	} else if (strcmp(tokens[0], "fg") == 0)
+		kill(gpid, SIGCONT);
 
 	if ((pid = fork()) == 0) {
 		last_token = tokens;
