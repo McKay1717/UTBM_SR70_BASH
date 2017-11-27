@@ -17,20 +17,27 @@
 
 static pid_t gpid = 0;
 static int received = 0;
+static pid_t last_exec = 0;
 
 void INThandler(int sig) {
 	char c;
-	printf("\nDo you want to quit [y/n] ? ");
-	c = getchar();
-	if (c == 'y' || c == 'Y') {
-		exit(0);
-	}
+    if(last_exec!=0)
+        kill(last_exec,SIGTSTP);
+    else{
+        printf("\nDo you want to quit [y/n] ? ");
+    	c = getchar();
+    	if (c == 'y' || c == 'Y') {
+	    	exit(0);
+         }
+    }
 
 }
 void FatherSTPhandler(int sig) {
 	received = 1;
-	if (gpid != 0)
+	if (last_exec != 0){
 		kill(gpid, SIGTSTP);
+        gpid=last_exec;
+    }
 }
 
 void exec_cmd(char* data) {
@@ -46,19 +53,31 @@ void exec_cmd(char* data) {
 
 	if (nb_tokens == NB_MAX_TOKENS) {
 		fprintf(stderr, "Too many tokens: exiting\n");
-		exit(3);
+        return;
 	}
 
 	if (nb_tokens <= 0) {
 		fprintf(stderr, "Cannot split tokens: exiting\n");
-		exit(4);
+        return;
 	}
 
 	if (strcmp(tokens[0], "exit") == 0) {
 		fprintf(stdout, ANSI_COLOR_RED "Goodbye...\n" ANSI_COLOR_RESET);
 		exit(0);
-	} else if (strcmp(tokens[0], "fg") == 0 && gpid != 0)
+	} else if (strcmp(tokens[0], "fg") == 0){
 		kill(gpid, SIGCONT);
+        last_exec=gpid;
+        gpid=0;
+		waitpid(last_exec, &return_status, WUNTRACED | WCONTINUED);// voir avec nico
+        last_exec = 0 ;
+        return;
+    }
+     else if(strcmp(tokens[0],"cd")==0){
+      if(chdir(tokens[1])<0){
+          perror("chdir");
+      }
+      return;
+     };
 
 	if ((pid = fork()) == 0) {
 		last_token = tokens;
@@ -77,7 +96,6 @@ void exec_cmd(char* data) {
 				dup2(com[1], 1);
 				execvp(last_token[0], last_token);
 				close(com[1]);
-				gpid = 0;
 				exit(0);
 			} else {
 				//Father
@@ -101,12 +119,11 @@ void exec_cmd(char* data) {
 
 		if (execvp(last_token[0], last_token) < 0) {
 			perror("execvp");
-			exit(-1);
 		}
 	} else {
+        last_exec = pid;
 		waitpid(pid, &return_status, WUNTRACED | WCONTINUED);
-		if(WIFSTOPPED(return_status))
-			gpid = pid;
+        last_exec = 0 ;
 	}
 }
 
@@ -114,7 +131,7 @@ int main() {
 	char line[INPUT_BUFFER_SIZE + 1];
 
 	char* data;
-
+    char pwd[1024];
 	//recuperation login
 
 	char login[25];
@@ -124,9 +141,9 @@ int main() {
 	signal(SIGTSTP, FatherSTPhandler);
 
 	for (;;) {
-
+        getcwd(pwd,sizeof(pwd));
 		data = "";
-		fprintf(stdout, ANSI_COLOR_GREEN "%s : " ANSI_COLOR_RESET, login);
+		fprintf(stdout, ANSI_COLOR_GREEN "%s:%s$ " ANSI_COLOR_RESET, login,pwd);
 		data = fgets(line, INPUT_BUFFER_SIZE, stdin);
 
 		if (data == NULL) {
