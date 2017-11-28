@@ -68,7 +68,7 @@ void exec_cmd(char* data) {
 		kill(gpid, SIGCONT);
         last_exec=gpid;
         gpid=0;
-		waitpid(last_exec, &return_status, WUNTRACED | WCONTINUED);// voir avec nico
+		waitpid(last_exec, &return_status, WUNTRACED);// voir avec nico
         last_exec = 0 ;
         return;
     }
@@ -122,7 +122,7 @@ void exec_cmd(char* data) {
 		}
 	} else {
         last_exec = pid;
-		waitpid(pid, &return_status, WUNTRACED | WCONTINUED);
+		waitpid(pid, &return_status, WUNTRACED);
         last_exec = 0 ;
 	}
 }
